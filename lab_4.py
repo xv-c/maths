@@ -14,8 +14,6 @@ def hopf_portf(cb, x):
     state_vector = [1, 1, 0, 1]
     stable = False
 
-    print(state_vector)
-
     while not stable:
         new_state_vector = np.sign(np.dot(weight_matrix, state_vector))
         if np.array_equal(state_vector, new_state_vector):
@@ -36,29 +34,35 @@ data = pd.read_csv(file)
 akcii = data.values
 akcii = pd.DataFrame(akcii)
 # находим ежедневную доходность
-doxodn = (akcii / akcii.shift(1) - 1) * 100
+doxodn = akcii / akcii.shift(1) - 1
 dox_sr = doxodn.iloc[1:, :]
 # среднее по доходностям
-mean1 = dox_sr.mean()
 cb = ['hydr', 'mvideo', 'novatek', 'sber']
-x = mean1
+x = dox_sr.mean()
 weights = hopf_portf(cb, x)
 
+# Вычисление корреляции между бумагами
+correlation_matrix = dox_sr.corr()
+
+# Вычисление риска портфеля
+portfolio_variance = np.dot(np.array(weights).T, np.dot(correlation_matrix, weights))
+risks = dox_sr.std()
+portfolio_risk = np.sqrt(portfolio_variance)
+
 print("Веса:", weights)
+print()
+
+print("Риск каждой бумаги:")
+for i in range(len(cb)):
+    print(cb[i], risks[i])
+print()
+
+print("Риск портфеля:", portfolio_risk)
+print()
+
+print("Доходность портфеля:", np.dot(np.array(weights), x))
+print()
+
 optimized_weights = np.round(weights, 2)
 print(optimized_weights)
 print(sum(optimized_weights))
-
-n = len(akcii)
-
-# Расчет риска и доходности портфеля
-def calculate_portfolio_return_and_risk(weights, returns):
-    portfolio_return = np.sum(returns.mean() * weights) * n
-    portfolio_std_dev = np.sqrt(np.dot(weights.T, np.dot(returns.cov() * n, weights)))
-    return portfolio_return, portfolio_std_dev
-
-# Расчет доходности и риска для оптимизированных весов
-portfolio_return, portfolio_risk = calculate_portfolio_return_and_risk(optimized_weights, dox_sr)
-
-print("Ожидаемая доходность портфеля: ", portfolio_return)
-print("Риск портфеля: ", portfolio_risk)
